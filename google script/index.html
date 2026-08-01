@@ -1,0 +1,1134 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <title>סיכום תשלומים</title>
+  <style>
+    :root {
+      --bg: #f5f8ff;
+      --card: #fff;
+      --ink: #0b132b;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #10437c;
+      --accent-weak: #e6efff;
+      --good: #0d9488;
+      --stripe: #fafbff;
+      --focus: #ffd166;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Rubik', Arial, sans-serif;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 260px 1fr;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(90deg, var(--accent), #3b82f6);
+      color: #fff;
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .export-btn {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.5);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+    }
+
+    .export-btn:hover {
+      background: rgba(255,255,255,.35);
+    }
+
+    @media print {
+      body > *:not(#printOverlay) { display: none !important; }
+      #printOverlay {
+        display: block !important;
+        position: static !important;
+        background: #fff !important;
+        padding: 0 !important;
+      }
+      #printOverlay * { visibility: visible; }
+      .print-close-btn, .print-action-btn { display: none !important; }
+    }
+
+    #printOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff;
+      z-index: 99999;
+      overflow-y: auto;
+      padding: 30px;
+      box-sizing: border-box;
+      direction: rtl;
+    }
+
+    #printOverlay .print-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    #printOverlay h1 {
+      font-size: 20px;
+      color: #10437c;
+      margin: 0 0 4px;
+    }
+
+    #printOverlay .print-subtitle {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .print-close-btn {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+
+    .print-action-btn {
+      background: #10437c;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #printOverlay .year-title {
+      font-size: 17px;
+      color: #10437c;
+      margin: 28px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #10437c;
+    }
+
+    #printOverlay .year-title:first-of-type { margin-top: 0; }
+
+    #printOverlay table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    #printOverlay thead th {
+      background: #10437c;
+      color: #fff;
+      padding: 10px;
+      text-align: right;
+      font-weight: 700;
+    }
+
+    #printOverlay tbody td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: right;
+    }
+
+    #printOverlay tbody tr:nth-child(odd) td { background: #f5f8ff; }
+    #printOverlay tbody tr:nth-child(even) td { background: #fff; }
+
+    #printOverlay .sig-btn { display: none; }
+
+    #printOverlay .sig-indicator.signed {
+      display: inline-block;
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .tag {
+      background: rgba(255, 255, 255, .2);
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 600
+    }
+
+    /* עמודת חודשים */
+    .months {
+      top: 16px;
+      align-self: start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+      max-height: calc(100vh - 32px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .months h2 {
+      margin: 4px 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+      flex: 0 0 auto;
+    }
+
+    .month-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .month-item {
+      padding: 10px;
+      border-radius: 10px;
+      margin: 6px 0;
+      background: var(--accent-weak);
+      font-weight: 600;
+      border: 1px dashed #c7d7ff;
+      cursor: pointer;
+      user-select: none;
+      outline: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .month-item:focus-visible {
+      box-shadow: 0 0 0 3px var(--focus);
+    }
+
+    .month-item.is-active {
+      background: #dbe8ff;
+      border-color: #98b6ff;
+    }
+
+    /* אינדיקטור חתימה */
+    .sig-badge {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, .2);
+    }
+
+    /* כרטיס טבלה */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+      overflow: hidden;
+    }
+
+    .card header.section {
+      padding: 12px 16px;
+      background: var(--accent-weak);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card.tariffs {
+      grid-column: 1 / -1;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 500px;
+    }
+
+    thead th {
+      padding: 10px;
+      text-align: right;
+      background: #f1f5ff;
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody td {
+      padding: 10px;
+      text-align: right;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr:nth-child(odd) td {
+      background: var(--stripe);
+    }
+
+    .row-selected td {
+      background: #fff6e6 !important;
+      box-shadow: inset 0 0 0 9999px rgba(255, 209, 102, .25);
+    }
+
+    /* עמודת חתימה */
+    .sig-cell {
+      text-align: center !important;
+    }
+
+    .sig-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .sig-indicator.signed {
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 600;
+    }
+
+    .sig-indicator.unsigned {
+      background: #fee;
+      color: #991b1b;
+    }
+
+    .sig-btn {
+      background: #10437c;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all .2s;
+    }
+
+    .sig-btn:hover {
+      background: #0c3461;
+    }
+
+    .sig-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    /* סה״כ */
+    .totals {
+      grid-column: 1 / -1;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+    }
+
+    .sum {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--good);
+    }
+
+    /* מודאל חתימה */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, .5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 650px;
+      width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, .3);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      color: var(--accent);
+      font-size: 18px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--muted);
+      line-height: 1;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+    }
+
+    .modal-close:hover {
+      color: var(--ink);
+    }
+
+    .canvas-wrapper {
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      background: #fff;
+      margin: 16px 0;
+      position: relative;
+    }
+
+    .signature-canvas {
+      display: block;
+      width: 100%;
+      cursor: crosshair;
+    }
+
+    .canvas-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--muted);
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .btn-clear {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .btn-clear:hover {
+      background: #dc2626;
+    }
+
+    .btn-save {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .btn-save:hover {
+      background: #059669;
+    }
+
+    .btn-save:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .message {
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .message.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .message.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* תצוגת חתימה */
+    .sig-view {
+      text-align: center;
+    }
+
+    .sig-view img {
+      max-width: 300px;
+      border: 2px solid #10b981;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+      margin: 8px 0;
+    }
+
+    .sig-date {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* התאמות לנייד */
+    @media(max-width:600px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .months {
+        position: relative;
+        top: auto;
+        order: 1
+      }
+
+      .main {
+        order: 2
+      }
+
+      .card {
+        overflow-x: auto;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      header h1 {
+        font-size: 18px;
+      }
+
+      .totals {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .modal-content {
+        width: 95%;
+        padding: 16px;
+      }
+
+      .signature-canvas {
+        height: 150px;
+      }
+    }
+
+    .year-selector {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+    }
+
+    .year-selector label {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* תפריט מותאם אישית */
+    .custom-select {
+      position: relative;
+      min-width: 120px;
+    }
+
+    .custom-select-btn {
+      width: 100%;
+      font-size: 18px;
+      padding: 8px 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .custom-select-btn::after {
+      content: '▾';
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .custom-select-list {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      left: 0;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
+      z-index: 200;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .custom-select-list.open {
+      display: block;
+    }
+
+    .custom-select-option {
+      padding: 10px 15px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .custom-select-option:hover,
+    .custom-select-option.selected {
+      background: var(--accent-weak);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>סיכום תשלומים — מים • חשמל • ארנונה</h1>
+      <button class="export-btn" onclick="exportToPDF()">⬇ ייצוא PDF</button>
+    </header>
+    <div class="year-selector">
+      <label>שנה:</label>
+      <div class="custom-select" id="yearSelect">
+        <button type="button" class="custom-select-btn" id="yearSelectBtn"></button>
+        <div class="custom-select-list" id="yearSelectList"></div>
+      </div>
+    </div>
+
+  <!-- חודשים -->
+  <aside class="months">
+    <h2>חודשים</h2>
+    <ul class="month-list" id="monthList">
+      <? var monthIdx = payments[0].indexOf('חודש');
+        var yearIdx = payments[0].indexOf('שנה');
+        if(monthIdx<0){ ?>
+      <li class="month-item" tabindex="0" role="button">לא נמצאה עמודת "חודש"</li>
+      <? } else {
+          for(var r=1;r<payments.length;r++){ 
+            var month = payments[r][monthIdx];
+            var year  = payments[r][yearIdx];
+            var hasSig = signatures[month];
+        ?>
+      <li class="month-item" tabindex="0" role="button" data-row="<?= r-1 ?>" data-month="<?= month ?>"
+        data-year="<?= year ?>">
+        <span><?= month ?></span>
+        <? if(hasSig){ ?><span class="sig-badge" title="חתום"></span>
+        <? } ?>
+      </li>
+      <? }} ?>
+    </ul>
+  </aside>
+
+  <!-- טבלה ראשית -->
+  <main class="main card">
+    <header class="section">
+      <h2>תשלומים</h2>
+    </header>
+    <div style="overflow-x:auto">
+      <table id="paymentsTable">
+        <thead>
+          <tr>
+            <? var mIdx=payments[0].indexOf('חודש');
+              var yIdx=payments[0].indexOf('שנה');
+              var colIdxs=[];
+              for(var i=0;i<payments[0].length;i++){ if(i!==mIdx && i!==yIdx) colIdxs.push(i); }
+              for(var k=0;k<colIdxs.length;k++){ ?>
+            <th>
+              <?= payments[0][colIdxs[k]] ?>
+            </th>
+            <? } ?>
+            <th>חתימה</th>
+          </tr>
+        </thead>
+        <tbody>
+          <? var totalIdx=payments[0].indexOf('סה"כ'); var grand=0;
+            for(var r=1;r<payments.length;r++){ 
+              var row=payments[r];
+              var month = row[mIdx];
+              var year = row[yIdx];
+              var sig = signatures[month];
+              if(totalIdx>=0){grand+=Number(String(row[totalIdx]).replace(/[^0-9.\-]/g,''))||0;} 
+            ?>
+          <tr data-row-index="<?= r-1 ?>" data-month="<?= month ?>" data-year="<?= year ?>">
+            <? for(var k=0;k<colIdxs.length;k++){ ?>
+            <td>
+              <?= row[colIdxs[k]] ?>
+            </td>
+            <? } ?>
+            <td class="sig-cell">
+              <? if(sig){ ?>
+              <span class="sig-indicator signed" onclick="viewSignature('<?= month ?>')">
+                      ✓ חתום
+                    </span>
+              <? } else { ?>
+              <button class="sig-btn" onclick="openSignatureModal('<?= month ?>')">חתום</button>
+              <? } ?>
+            </td>
+          </tr>
+          <? } ?>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- תעריפים -->
+  <section class="card tariffs">
+    <header class="section">
+      <h2>תעריפים</h2>
+    </header>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <? for(var i=0;i<tariffs[0].length;i++){ ?>
+            <th>
+              <?= tariffs[0][i] ?>
+            </th>
+            <? } ?>
+          </tr>
+        </thead>
+        <tbody>
+          <? for(var r=1;r<tariffs.length;r++){ var row=tariffs[r]; ?>
+          <tr>
+            <? for(var c=0;c<row.length;c++){ ?>
+            <td>
+              <?= row[c] ?>
+            </td>
+            <? } ?>
+          </tr>
+          <? } ?>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- סה״כ -->
+  <div class="totals">
+    <? if(totalIdx>=0){ ?>
+    <span>סה״כ מצטבר:</span><span class="sum"><?= grand.toLocaleString('he-IL',{style:'currency',currency:'ILS'}) ?></span>
+    <? } ?>
+  </div>
+
+  </div><!-- /wrap -->
+
+  <!-- מודאל הדפסה -->
+  <div id="printOverlay">
+    <div class="print-header">
+      <div>
+        <h1>סיכום תשלומים — מים • חשמל • ארנונה</h1>
+        <div class="print-subtitle" id="printSubtitle"></div>
+      </div>
+      <div>
+        <button class="print-action-btn" onclick="window.print()">🖨 הדפס / שמור PDF</button>
+        <button class="print-close-btn" onclick="closePrintOverlay()">✕ סגור</button>
+      </div>
+    </div>
+    <div id="printContent"></div>
+  </div>
+
+  <!-- מודאל חתימה -->
+  <div class="modal" id="signatureModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>חתימת משכיר - <span id="modalMonth"></span></h3>
+        <button class="modal-close" onclick="closeSignatureModal()">×</button>
+      </div>
+      <div id="signatureArea">
+        <div class="canvas-wrapper">
+          <canvas id="signatureCanvas" class="signature-canvas" width="600" height="200"></canvas>
+          <div class="canvas-hint" id="canvasHint">חתום כאן באמצעות עכבר או מגע</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-clear" onclick="clearSignature()">נקה</button>
+          <button class="btn btn-save" id="saveBtn" onclick="saveSignature()">שמור חתימה</button>
+        </div>
+        <div id="modalMessage"></div>
+      </div>
+      <div id="signatureView" style="display:none;" class="sig-view">
+        <img id="sigImage" src="" alt="חתימה">
+        <div class="sig-date" id="sigDate"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // העתקת נתונים מהשרת
+    const signaturesData = <?= JSON.stringify(signatures) ?>;
+    
+  // אינטראקטיביות חודשים
+    const monthList = document.getElementById('monthList');
+    const paymentsTable = document.getElementById('paymentsTable');
+    const tbody = paymentsTable ? paymentsTable.tBodies[0] : null;
+    const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+
+    function clearSelection(){
+      monthList.querySelectorAll('.is-active').forEach(el=>el.classList.remove('is-active'));
+      rows.forEach(tr=>tr.classList.remove('row-selected'));
+    }
+
+    function selectByIndex(idx){
+      if(idx==null || idx<0 || idx>=rows.length) return;
+      clearSelection();
+      const li = monthList.querySelector(`.month-item[data-row="${idx}"]`);
+      if(li){ li.classList.add('is-active'); }
+      const tr = tbody.querySelector(`tr[data-row-index="${idx}"]`);
+      if(tr){
+        tr.classList.add('row-selected');
+        tr.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    }
+
+    if(monthList){
+      monthList.addEventListener('click', (e)=>{
+        const li = e.target.closest('.month-item');
+        if(!li) return;
+        const idx = parseInt(li.getAttribute('data-row'), 10);
+        selectByIndex(idx);
+      });
+
+      monthList.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' '){
+          const li = e.target.closest('.month-item');
+          if(!li) return;
+          e.preventDefault();
+          const idx = parseInt(li.getAttribute('data-row'), 10);
+          selectByIndex(idx);
+        }
+      });
+    }
+
+    // שמות חודשים בעברית - תואם לפורמט בגיליון
+    const hebrewMonths = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+    function getPreviousMonthName(){
+      const now = new Date();
+      let prevMonthIdx = now.getMonth() - 1; // getMonth() = 0-11, החודש הנוכחי
+      if(prevMonthIdx < 0) prevMonthIdx = 11; // ינואר -> דצמבר
+      return hebrewMonths[prevMonthIdx];
+    }
+
+    // טעינת השנים + בחירת ברירת מחדל
+  let selectedYear = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("yearSelectBtn");
+  const list = document.getElementById("yearSelectList");
+
+  const years = [...new Set(rows.map(r => r.dataset.year))];
+  years.sort();
+
+  years.forEach(y => {
+    const opt = document.createElement("div");
+    opt.className = "custom-select-option";
+    opt.textContent = y;
+    opt.dataset.year = y;
+    opt.addEventListener("click", () => {
+      selectYear(y);
+      list.classList.remove("open");
+    });
+    list.appendChild(opt);
+  });
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    list.classList.toggle("open");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".custom-select")) list.classList.remove("open");
+  });
+
+  const currentYear = String(new Date().getFullYear());
+  selectYear(years.includes(currentYear) ? currentYear : years[years.length - 1]);
+});
+
+function selectYear(year) {
+  selectedYear = year;
+  document.getElementById("yearSelectBtn").textContent = year;
+  document.querySelectorAll(".custom-select-option").forEach(o => {
+    o.classList.toggle("selected", o.dataset.year === year);
+  });
+  filterByYear();
+}
+
+function filterByYear(){
+  const year = selectedYear;
+  let lastVisibleIdx = null;
+  let prevMonthIdx = null;
+  const prevMonthName = getPreviousMonthName();
+
+  rows.forEach(row=>{
+    const isVisible = row.dataset.year === year;
+    row.style.display = isVisible ? "" : "none";
+    if(isVisible){
+      const idx = parseInt(row.getAttribute('data-row-index'), 10);
+      lastVisibleIdx = idx;
+      if(row.dataset.month === prevMonthName){
+        prevMonthIdx = idx;
+      }
+    }
+  });
+
+  document.querySelectorAll(".month-item").forEach(item=>{
+    item.style.display = item.dataset.year === year ? "" : "none";
+  });
+
+  selectByIndex(prevMonthIdx != null ? prevMonthIdx : lastVisibleIdx);
+}
+
+
+    // מערכת חתימה
+    let currentMonth = null;
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let hasDrawn = false;
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    function openSignatureModal(month) {
+      currentMonth = month;
+      document.getElementById('modalMonth').textContent = month;
+      document.getElementById('signatureModal').classList.add('show');
+      document.getElementById('signatureArea').style.display = 'block';
+      document.getElementById('signatureView').style.display = 'none';
+      clearSignature();
+    }
+
+    function closeSignatureModal() {
+      document.getElementById('signatureModal').classList.remove('show');
+      currentMonth = null;
+    }
+
+    function viewSignature(month) {
+      const sig = signaturesData[month];
+      if (!sig) return;
+      
+      currentMonth = month;
+      document.getElementById('modalMonth').textContent = month;
+      document.getElementById('sigImage').src = sig.data;
+      document.getElementById('sigDate').textContent = 'נחתם ב-' + sig.date;
+      document.getElementById('signatureArea').style.display = 'none';
+      document.getElementById('signatureView').style.display = 'block';
+      document.getElementById('signatureModal').classList.add('show');
+    }
+
+    // ציור
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    canvas.addEventListener('touchstart', handleTouch);
+    canvas.addEventListener('touchmove', handleTouch);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    function startDrawing(e) {
+      isDrawing = true;
+      hasDrawn = true;
+      document.getElementById('canvasHint').style.display = 'none';
+      const rect = canvas.getBoundingClientRect();
+      ctx.beginPath();
+      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      isDrawing = false;
+    }
+
+    function handleTouch(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      canvas.dispatchEvent(mouseEvent);
+    }
+
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasDrawn = false;
+      document.getElementById('canvasHint').style.display = 'block';
+      document.getElementById('modalMessage').innerHTML = '';
+    }
+
+    function saveSignature() {
+      if (!hasDrawn) {
+        showMessage('אנא חתום/י לפני השמירה', 'error');
+        return;
+      }
+
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'שומר...';
+
+      const signatureData = canvas.toDataURL('image/png');
+
+      google.script.run
+        .withSuccessHandler(onSaveSuccess)
+        .withFailureHandler(onSaveError)
+        .saveSignature(currentMonth, signatureData);
+    }
+
+    function onSaveSuccess(result) {
+      if (result.success) {
+        showMessage('החתימה נשמרה בהצלחה! מרענן...', 'success');
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showMessage('שגיאה: ' + result.error, 'error');
+        document.getElementById('saveBtn').disabled = false;
+        document.getElementById('saveBtn').textContent = 'שמור חתימה';
+      }
+    }
+
+    function onSaveError(error) {
+      showMessage('שגיאה: ' + error.message, 'error');
+      document.getElementById('saveBtn').disabled = false;
+      document.getElementById('saveBtn').textContent = 'שמור חתימה';
+    }
+
+    function showMessage(text, type) {
+      document.getElementById('modalMessage').innerHTML = 
+        `<div class="message ${type}">${text}</div>`;
+    }
+
+    // סגירת מודאל בלחיצה על רקע
+    document.getElementById('signatureModal').addEventListener('click', (e) => {
+      if (e.target.id === 'signatureModal') closeSignatureModal();
+    });
+
+    // ייצוא PDF
+    function exportToPDF() {
+      const paymentsTable = document.getElementById('paymentsTable');
+      if (!paymentsTable) return;
+
+      const allRows = Array.from(paymentsTable.tBodies[0].querySelectorAll('tr'));
+
+      // קיבוץ לפי שנה
+      const yearMap = new Map();
+      allRows.forEach(tr => {
+        const y = tr.dataset.year || '—';
+        if (!yearMap.has(y)) yearMap.set(y, []);
+        yearMap.get(y).push(tr);
+      });
+
+      // בניית HTML — שכפול השורות ללא display:none
+      let html = '';
+      for (const [year, yearRows] of yearMap) {
+        // כותרת טבלה עם עמודת חודש ראשונה
+        const origThead = paymentsTable.tHead;
+        const thCells = Array.from(origThead.querySelectorAll('th'));
+        const theadWithMonth = `<thead><tr><th>חודש</th>${thCells.map(th => `<th>${th.innerHTML}</th>`).join('')}</tr></thead>`;
+
+        html += `<h2 class="year-title">שנת ${year}</h2><table>${theadWithMonth}<tbody>`;
+        yearRows.forEach(tr => {
+          const clone = tr.cloneNode(true);
+          clone.style.display = '';
+          const month = tr.dataset.month || '';
+          const monthTd = `<td>${month}</td>`;
+          html += `<tr>${monthTd}${clone.innerHTML}</tr>`;
+        });
+        html += '</tbody></table>';
+      }
+
+      document.getElementById('printSubtitle').textContent =
+        'הופק בתאריך: ' + new Date().toLocaleDateString('he-IL');
+      document.getElementById('printContent').innerHTML = html;
+      document.getElementById('printOverlay').style.display = 'block';
+    }
+
+    function closePrintOverlay() {
+      document.getElementById('printOverlay').style.display = 'none';
+    }
+  </script>
+</body>
+
+</html>
